@@ -1,0 +1,28 @@
+{
+  "name": "dice",
+  "version": "1.0.0",
+  "description": "roll the wheel :)",
+  "main": "src/index.js",
+  "author": "easygo",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "nodemon src/index.js",
+    "test": "docker-compose run --rm wheel /node/node_modules/.bin/mocha src"
+  },
+  "dependencies": {
+    "big.js": "^6.0.3",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "ioredis": "^4.11.1",
+    "knex": "^0.21.15",
+    "lodash": "^4.17.14",
+    "pg": "^8.5.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1",
+    "nodemon": "^2.0.6"
+  }
+}

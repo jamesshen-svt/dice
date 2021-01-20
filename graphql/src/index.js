@@ -1,7 +1,10 @@
 const _ = require('lodash');
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
+const DataLoader = require('dataloader');
 const schema = require('./schema');
+const DiceBet = require('./schema/dice-bet');
+const WheelBet = require('./schema/wheel-bet');
 
 async function start() {
   const app = express();
@@ -15,7 +18,17 @@ async function start() {
       that as an identifier withhin this project.
     */
       const user = _.get(req, 'headers.x-user', 'easygo');
-      return { user };
+      return {
+        user,
+        dataloaders: {
+          seedDiceLoader: new DataLoader(DiceBet.SeedLoadFunc, {
+            batch: false,
+          }),
+          seedWheelLoader: new DataLoader(WheelBet.SeedLoadFunc, {
+            batch: false,
+          }),
+        },
+      };
     },
     introspection: true,
     playground: { endpoint: 'http://localhost/graphql' },

@@ -2,6 +2,7 @@ const _ = require('lodash');
 const crypto = require('crypto');
 const { v4: uuid } = require('uuid');
 const assert = require('assert');
+const big = require('big.js');
 const { knex } = require('./knex');
 const { redis } = require('./redis');
 
@@ -17,10 +18,8 @@ const parseSeed = (seed) => {
   return seed;
 };
 
-exports.rollDice = ({ user, amount, target }) =>
+exports.rollWheel = ({ user, amount }) =>
   knex.transaction(async (trx) => {
-    assert(target >= 0);
-    assert(target < 99);
     assert(amount >= 0);
 
     let [seed] = await trx('seed').where({ user, active: true }).forUpdate();
@@ -34,7 +33,6 @@ exports.rollDice = ({ user, amount, target }) =>
     }
 
     const nonce = String(seed.nonce + 1);
-
     const hmac = crypto
       .createHmac('sha256', seed.secret)
       .update(nonce)
@@ -42,14 +40,22 @@ exports.rollDice = ({ user, amount, target }) =>
 
     // we take the first 32 bits (4 bytes, 8 hex chars)
     const int = parseInt(hmac.substr(0, 8), 16);
+    // float is between 0 inc. and 1 exclusive.
     const float = int / 2 ** 32;
 
-    const result = Math.floor(float * 100);
-    const odds = (99 - target) / 100;
-    const isWin = result > target;
+    const result = Math.floor(float * 10);
+    // divide result into 10 segments. check 1 segment with 1.5x payout.
+    // 7 segments with 1.2 payout.
+    // 2 segments with 0 payout.
+    let payoutFactor = 0;
+    if (result < 1) {
+      payoutFactor = 1.5;
+    } else if (result >= 1 && result < 8) {
+      payoutFactor = 1.2;
+    }
 
-    // 0.99 applies our house edge of 1%
-    const payout = isWin ? (amount / odds) * 0.99 : 0;
+    // assume payout is dollar amount. but it might be unnecessary to round or require higher precision for crypto currency.
+    const payout = big(amount).times(payoutFactor).round(2).toNumber();
     const [bet] = await trx('bet')
       .insert({
         id: uuid(),
@@ -58,7 +64,6 @@ exports.rollDice = ({ user, amount, target }) =>
         amount,
         payout,
         result,
-        target,
         nonce,
       })
       .returning('*');
@@ -67,7 +72,7 @@ exports.rollDice = ({ user, amount, target }) =>
       .update('nonce', trx.raw('nonce + 1'))
       .where('id', seed.id);
 
-    await redis.publish('dice', JSON.stringify(bet));
+    await redis.publish('wheel', JSON.stringify(bet));
 
     return bet;
   });

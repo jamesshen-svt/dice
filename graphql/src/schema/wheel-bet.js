@@ -9,12 +9,11 @@ const User = require('./user');
 const Seed = require('./seed');
 
 exports.Type = new GraphQLObjectType({
-  name: 'DiceBet',
+  name: 'WheelBet',
   fields: () => ({
     id: { type: GraphQLString },
     amount: { type: GraphQLFloat },
     payout: { type: GraphQLFloat },
-    target: { type: GraphQLInt },
     result: { type: GraphQLInt },
     nonce: { type: GraphQLInt },
     user: {
@@ -24,7 +23,7 @@ exports.Type = new GraphQLObjectType({
     seed: {
       type: Seed.Type,
       resolve: async ({ seed_id: seedId }, args, { dataloaders }) => {
-        const data = await dataloaders.seedDiceLoader.load(seedId);
+        const data = await dataloaders.seedWheelLoader.load(seedId);
         return data;
       },
     },
@@ -36,6 +35,6 @@ exports.Type = new GraphQLObjectType({
  */
 exports.SeedLoadFunc = async (seedIds) => {
   const [seedId] = seedIds;
-  const { data } = await axios.post(`http://dice/get-seed`, { seedId });
+  const { data } = await axios.post(`http://wheel/get-seed`, { seedId });
   return [data];
 };
